@@ -2,10 +2,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform: RP2350](https://img.shields.io/badge/Platform-RP2350-blue.svg)](https://www.raspberrypi.com/documentation/microcontrollers/rp2350.html)
+[![Language: C/C++](https://img.shields.io/badge/Language-C%2FC%2B%2B-green.svg)](https://pico-wrapper.readthedocs.io/en/latest/)
+[![Language: MicroPython](https://img.shields.io/badge/Language-MicroPython-red.svg)](https://micropython.org/)
 
 A high-performance dual-channel RS485 communication library and example suite for the **2-CH RS485 HAT**, specifically ported and optimized for the **Raspberry Pi RP2350 (Pico 2)**. 
 
-This project leverages the **SC16IS752** SPI-to-Dual-UART bridge to provide two independent RS485 channels with automatic hardware flow control, managed via a clean C-based configuration layer.
+This project leverages the **SC16IS752** SPI-to-Dual-UART bridge to provide two independent RS485 channels with automatic hardware flow control, managed via a clean C-based configuration layer or a lightweight MicroPython driver.
 
 ---
 
@@ -26,11 +28,12 @@ The 2-CH RS485 HAT is an expansion board designed for the Raspberry Pi form fact
 ---
 
 ## ✨ Key Features
-- **Native RP2350 Support**: Full compatibility with the Pico SDK (v2.1.0+).
+- **Multi-Language Support**: Full implementation for both **C/C++ (Pico SDK)** and **MicroPython**.
+- **Native RP2350 Support**: Optimized for the new RP2350 (Pico 2) architecture.
 - **Dual-Channel Management**: Simple API to initialize and control both RS485 channels independently.
-- **Hardware Flow Control**: Dedicated `TXDEN` pins for automatic half-duplex direction switching.
-- **Comprehensive Examples**: Includes a robust dual-channel ping-pong communication test.
-- **Efficient SPI Interface**: Uses PIO/SPI to communicate with the SC16IS752 bridge.
+- **Direction Control**: Dedicated `TXDEN` pins for manual or automatic half-duplex direction switching.
+- **Comprehensive Examples**: Includes robust dual-channel ping-pong communication tests for both languages.
+- **Efficient SPI Interface**: High-speed communication with the SC16IS752 bridge.
 
 ---
 
@@ -51,84 +54,83 @@ The library is configured to use the following GPIO pins on the RP2350 (mapped t
 
 ## 🚀 Getting Started
 
-### 1. Prerequisites
+### 1. C/C++ SDK (Pico SDK)
+Navigate to the `RP2350` folder to build the firmware.
+
+#### **Prerequisites**
 - **Raspberry Pi Pico SDK** (v2.1.0 or higher)
 - **CMake** (3.13+)
 - **GCC ARM Embedded Toolchain**
 
-### 2. Build Instructions
-Navigate to the `RP2350` folder to build the firmware.
-
-#### **🐧 Linux & 🍎 macOS**
-1. **Enter the project directory:**
-   ```bash
-   cd RP2350
-   ```
-2. **Create and enter build folder:**
-   ```bash
-   mkdir build && cd build
-   ```
-3. **Initialize CMake and Compile:**
-   ```bash
-   cmake ..
-   make -j$(nproc) # Use -j$(sysctl -n hw.ncpu) on macOS
-   ```
-
-#### **🪟 Windows**
-Ensure you have the **ARM GCC Toolchain**, **CMake**, and a make tool (like **MinGW** or **Ninja**) installed and added to your PATH.
-
-**Using PowerShell:**
-1. **Enter the project directory:**
-   ```powershell
-   cd RP2350
-   ```
-2. **Initialize and Build:**
-   ```powershell
-   mkdir build
-   cd build
-   cmake -G "MinGW Makefiles" ..
-   cmake --build . -j4
-   ```
-
-> [!TIP]
-> **Recommended for Windows:** Use the [Raspberry Pi Pico VS Code Extension](https://marketplace.visualstudio.com/items?itemName=raspberry-pi.raspberry-pi-pico). It handles the environment setup automatically and provides a one-click "Compile" button in the status bar.
-#### **🎯 Build Targets**
-The build process generates two main firmware files located in the `build/` directory:
-- **`rs485_hat.uf2`**: Compiled from `examples/main.c`. A simple starting point for single-channel communication.
-- **`rs485_pingpong.uf2`**: Compiled from `examples/dual_ping_pong.c`. A full-featured test between both channels.
-
-To build a specific target instead of all, you can run:
+#### **Build Instructions**
+**Linux/macOS:**
 ```bash
-# On Linux/macOS
-make rs485_hat
-# OR
-make rs485_pingpong
-
-# On Windows (PowerShell)
-cmake --build . --target rs485_hat
-# OR
-cmake --build . --target rs485_pingpong
+cd RP2350
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
 ```
 
-### 3. Deployment
-After compilation, you will find `rs485_hat.uf2` and `rs485_pingpong.uf2` in the `build` directory. 
-1. Connect your RP2350 board in **BOOTSEL** mode.
-2. Copy the desired `.uf2` file to the RPI-RP2 drive.
+**Windows:**
+```powershell
+cd RP2350
+mkdir build
+cd build
+cmake -G "MinGW Makefiles" ..
+cmake --build . -j4
+```
+
+> [!TIP]
+> **Recommended for Windows:** Use the [Raspberry Pi Pico VS Code Extension](https://marketplace.visualstudio.com/items?itemName=raspberry-pi.raspberry-pi-pico). It handles the environment setup automatically.
+
+#### **🎯 Build Targets**
+- **`rs485_hat.uf2`**: Compiled from `examples/main.c`. Single-channel communication entry point.
+- **`rs485_pingpong.uf2`**: Compiled from `examples/dual_ping_pong.c`. Comprehensive test for CH1 ↔ CH2 communication.
+
+---
+
+### 2. MicroPython
+Navigate to the `Micropython` folder.
+
+#### **Prerequisites**
+- **MicroPython Firmware** installed on your RP2350.
+- A MicroPython IDE (like **Thonny** or **VS Code with Pymakr**).
+
+#### **Installation**
+1. Copy `Micropython/sc16is752.py` (the driver) to your board.
+2. Run `Micropython/main.py` to start the dual-channel ping-pong test.
+
+#### **Usage Example**
+```python
+from sc16is752 import RS485Port, SC16IS752
+
+# Initialize the SPI-to-UART bridge
+bridge = SC16IS752(cs_pin=18, irq_pin=24)
+
+# Setup RS485 Channels
+ch1 = RS485Port(bridge, SC16IS752.CHANNEL_A, txden_pin=27, baudrate=9600)
+ch2 = RS485Port(bridge, SC16IS752.CHANNEL_B, txden_pin=22, baudrate=9600)
+
+# Transmit and Receive
+ch1.write("Hello World")
+data = ch2.read_line()
+```
 
 ---
 
 ## 📂 Project Structure
-* `RP2350/` - Main development folder for Pico SDK.
+* `RP2350/` - Main development folder for Pico SDK (C/C++).
     * `lib/` - Core driver files for RS485 and SC16IS752.
     * `lib/Config/` - Hardware abstraction layer and pin definitions.
-    * `examples/` - Ready-to-run demo applications.
-        * `main.c`: Simple channel initialization.
-        * `dual_ping_pong.c`: Comprehensive test for CH1 ↔ CH2 communication.
+    * `examples/` - Ready-to-run C demo applications.
+* `Micropython/` - MicroPython implementation.
+    * `sc16is752.py` - Lightweight MicroPython driver for the SPI bridge.
+    * `main.py` - MicroPython loopback/ping-pong demo.
 
 ---
 
 ## 🧪 Demo: Dual Channel Ping-Pong
-The `rs485_pingpong` executable is designed to verify the hardware by looping data between the two channels.
+The ping-pong test (available in both C and MicroPython) verifies the hardware by looping data between the two channels.
 
 **Wiring Instructions:**
 1. Connect **CH1 A** to **CH2 A**.
